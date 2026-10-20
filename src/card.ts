@@ -1,6 +1,6 @@
 export interface Repository { full_name: string; description: string | null; language: string | null; stargazers_count: number; forks_count: number; pushed_at: string | null; html_url: string; private?: boolean }
 export type Theme = 'paper' | 'night';
-export interface CardData { repository: Repository; release: string; workflow: string }
+export interface CardData { repository: Repository; release: string; workflow: string; capturedAt?: string; isSample?: boolean }
 export function parseRepository(input: string): string {
   let value = input.trim();
   if (/^https?:/i.test(value)) {
@@ -35,9 +35,14 @@ export function renderCard(data: CardData, theme: Theme = 'paper'): string {
   const description = lines(repo.description || 'A public project on GitHub.');
   const count = (value: number) => Number.isSafeInteger(value) && value >= 0 ? String(value) : '—';
   const updated = repo.pushed_at && /^\d{4}-\d{2}-\d{2}T/.test(repo.pushed_at) ? repo.pushed_at.slice(0, 10) : 'unknown';
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="560" height="280" viewBox="0 0 560 280" role="img" aria-labelledby="title description">
-<title id="title">${e(repo.full_name)}</title><desc id="description">${e(repo.description || 'Public GitHub repository')}. ${e(data.workflow)}. ${e(data.release)}.</desc>
-<rect x="1" y="1" width="558" height="278" rx="16" fill="${colors.bg}" stroke="${colors.line}"/>
+  const captured = data.capturedAt ? new Date(data.capturedAt) : undefined;
+  const captureLabel = data.isSample ? 'Sample data · Capture time: not applicable'
+    : captured && Number.isFinite(captured.getTime())
+      ? `Captured ${captured.toISOString().slice(0, 19).replace('T', ' ')} UTC`
+      : 'Capture time: unavailable';
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="560" height="300" viewBox="0 0 560 300" role="img" aria-labelledby="title description">
+<title id="title">${e(repo.full_name)}</title><desc id="description">${e(repo.description || 'Public GitHub repository')}. ${e(data.workflow)}. ${e(data.release)}. ${e(captureLabel)}.</desc>
+<rect x="1" y="1" width="558" height="298" rx="16" fill="${colors.bg}" stroke="${colors.line}"/>
 <g font-family="Segoe UI,Arial,sans-serif"><text x="28" y="37" fill="${colors.accent}" font-size="10" letter-spacing="2">REPOSITORY / PUBLIC</text>
 <text x="28" y="77" fill="${colors.text}" font-size="24" font-weight="650">${e(clip(repo.full_name, 34))}</text>
 ${description.map((line, index) => `<text x="28" y="${109 + index * 21}" fill="${colors.muted}" font-size="13">${e(line)}</text>`).join('\n')}
@@ -46,10 +51,11 @@ ${description.map((line, index) => `<text x="28" y="${109 + index * 21}" fill="$
 <text x="290" y="185" fill="${colors.muted}" font-size="12">Stars ${count(repo.stargazers_count)}   ·   Forks ${count(repo.forks_count)}</text>
 <text x="28" y="215" fill="${colors.muted}" font-size="12">${e(clip(data.release, 62))}</text>
 <text x="28" y="239" fill="${colors.muted}" font-size="12">${e(clip(data.workflow, 62))}</text>
-<text x="28" y="262" fill="${colors.muted}" font-size="10">Last push ${e(updated)} · Snapshot, not a live badge</text></g></svg>`;
+<text x="28" y="262" fill="${colors.muted}" font-size="10">Last push ${e(updated)} · Snapshot, not a live badge</text>
+<text x="28" y="283" fill="${colors.muted}" font-size="10">${e(captureLabel)}</text></g></svg>`;
 }
 
-export async function fetchCard(input: string, request: typeof fetch = fetch): Promise<CardData> {
+export async function fetchCard(input: string, request: typeof fetch = fetch, now: () => Date = () => new Date()): Promise<CardData> {
   const slug = parseRepository(input);
   const base = `https://api.github.com/repos/${slug}`;
   const get = async (url: string) => request(url, { headers: {Accept:'application/vnd.github+json'}, signal: AbortSignal.timeout(12000), credentials:'omit', referrerPolicy:'no-referrer' });
@@ -63,7 +69,7 @@ export async function fetchCard(input: string, request: typeof fetch = fetch): P
     (async () => { const result = await get(base + '/releases/latest'); if (result.status === 404) release = 'Release: none published'; else if (result.ok) { const data = await result.json(); if (typeof data.tag_name === 'string') release = `Release: ${data.tag_name}`; } })(),
     (async () => { const result = await get(base + '/actions/runs?per_page=1'); if (result.ok) { const data = await result.json(); const run = data.workflow_runs?.[0]; if (!run) workflow = 'Latest workflow: no runs'; else if (typeof run.status === 'string') workflow = `Latest workflow: ${run.status === 'completed' ? (typeof run.conclusion === 'string' ? run.conclusion : 'unknown') : run.status}`; } })(),
   ]);
-  return { repository, release, workflow };
+  return { repository, release, workflow, capturedAt: now().toISOString() };
 }
 
-export const sample: CardData = {repository:{full_name:'owner/project', description:'A thoughtful tool for a small, useful problem. Clear documentation, repeatable checks, and room to grow.', language:'TypeScript', stargazers_count:12, forks_count:2, pushed_at:'2026-10-19T00:00:00Z', html_url:'https://github.com/owner/project'}, release:'Release: sample v0.1.0', workflow:'Latest workflow: sample success'};
+export const sample: CardData = {isSample:true, repository:{full_name:'owner/project', description:'A thoughtful tool for a small, useful problem. Clear documentation, repeatable checks, and room to grow.', language:'TypeScript', stargazers_count:12, forks_count:2, pushed_at:'2026-10-19T00:00:00Z', html_url:'https://github.com/owner/project'}, release:'Release: sample v0.1.0', workflow:'Latest workflow: sample success'};

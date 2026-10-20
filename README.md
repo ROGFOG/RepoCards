@@ -10,6 +10,7 @@ choose Paper or Night, and download a card for a README or project page.
 ## Included
 
 - Public name, description, language, stars, forks and last push date.
+- UTC metadata capture time, shown separately from the last push date.
 - Latest published release and latest workflow run, when accessible.
 - Two palettes, accessible SVG titles, local preview and SVG download.
 - Markdown snippet for a card saved as `assets/repository-card.svg`.
@@ -17,7 +18,11 @@ choose Paper or Night, and download a card for a README or project page.
 
 Cards are **snapshots**, not hosted live badges. Latest workflow means one run,
 not every check or the status of the current default branch. Regenerate a card
-when you need to refresh its contents.
+when you need to refresh its contents. The capture time is recorded once, after
+metadata requests finish, using your device clock. Switching palettes or downloading
+again preserves that time; it does not prove the data is fresh or signed. Sample
+cards say the capture time is not applicable. Older card data without a timestamp
+shows an explicit unavailable label.
 
 ## Run locally
 

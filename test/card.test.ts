@@ -9,3 +9,39 @@ test('optional API failures never produce passing status', async () => { const r
 test('handles missing releases and empty workflows', async () => { const request = async (url: string | URL | Request) => String(url).includes('/releases/') ? new Response('', {status:404}) : String(url).includes('/actions/') ? Response.json({workflow_runs:[]}) : Response.json(sample.repository); const data = await fetchCard('a/b', request as typeof fetch); assert.equal(data.release, 'Release: none published'); assert.equal(data.workflow, 'Latest workflow: no runs'); });
 test('rate limit produces an actionable message', async () => { await assert.rejects(fetchCard('a/b', (async () => new Response('', {status:403})) as typeof fetch), /rate limit/); });
 test('metadata uses explicit no-credential request options', async () => { const request = async (_url: unknown, options: RequestInit) => { assert.equal(options.credentials, 'omit'); assert.equal(options.referrerPolicy, 'no-referrer'); return Response.json(sample.repository); }; await fetchCard('a/b', request as typeof fetch); });
+
+test('capture time is recorded once after metadata requests and survives palette changes', async () => {
+  const complete = new Set<string>();
+  let clockCalls = 0;
+  const request = async (url: string | URL | Request) => {
+    const path = String(url);
+    if (path.includes('/releases/')) { complete.add('release'); return new Response('', {status:404}); }
+    if (path.includes('/actions/')) { complete.add('workflow'); return Response.json({workflow_runs:[]}); }
+    return Response.json(sample.repository);
+  };
+  const data = await fetchCard('a/b', request as typeof fetch, () => {
+    assert.equal(complete.size, 2);
+    clockCalls++;
+    return new Date('2026-10-20T14:31:12+03:00');
+  });
+  assert.equal(data.capturedAt, '2026-10-20T11:31:12.000Z');
+  for (const theme of ['paper', 'night'] as const) {
+    const svg = renderCard(data, theme);
+    assert.ok(svg.includes('Captured 2026-10-20 11:31:12 UTC'));
+    assert.ok(svg.includes('Last push 2026-10-19'));
+    assert.ok(svg.includes('viewBox="0 0 560 300"'));
+  }
+  assert.equal(clockCalls, 1);
+});
+test('sample capture time is explicitly inapplicable even when a timestamp is supplied', () => {
+  const svg = renderCard({...sample, capturedAt:'2026-10-20T11:31:12.000Z'});
+  assert.ok(svg.includes('Sample data · Capture time: not applicable'));
+  assert.ok(!svg.includes('Captured 2026-10-20'));
+});
+test('older and invalid capture times stay unavailable instead of using render time', () => {
+  for (const capturedAt of [undefined, 'not-a-date', '<script>alert(1)</script>']) {
+    const svg = renderCard({...sample, isSample:false, capturedAt});
+    assert.ok(svg.includes('Capture time: unavailable'));
+    assert.ok(!svg.includes('<script>'));
+  }
+});
