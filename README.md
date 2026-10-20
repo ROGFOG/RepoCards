@@ -1,7 +1,8 @@
 # RepoCards
 
-Clean, portable SVG cards for public GitHub repositories. Enter a repository,
-choose Paper or Night, and download a card for a README or project page.
+Enter a public GitHub repository, choose Paper or Night, and download an SVG
+card with its description, language, activity and available release metadata.
+Use the card in a README or project page.
 
 [Open the card studio](https://rogfog.github.io/RepoCards/) · [Design notes, RU](docs/design.ru.md)
 

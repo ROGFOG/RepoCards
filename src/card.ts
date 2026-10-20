@@ -72,4 +72,4 @@ export async function fetchCard(input: string, request: typeof fetch = fetch, no
   return { repository, release, workflow, capturedAt: now().toISOString() };
 }
 
-export const sample: CardData = {isSample:true, repository:{full_name:'owner/project', description:'A thoughtful tool for a small, useful problem. Clear documentation, repeatable checks, and room to grow.', language:'TypeScript', stargazers_count:12, forks_count:2, pushed_at:'2026-10-19T00:00:00Z', html_url:'https://github.com/owner/project'}, release:'Release: sample v0.1.0', workflow:'Latest workflow: sample success'};
+export const sample: CardData = {isSample:true, repository:{full_name:'owner/project', description:'An example repository used to preview SVG card layouts.', language:'TypeScript', stargazers_count:12, forks_count:2, pushed_at:'2026-10-19T00:00:00Z', html_url:'https://github.com/owner/project'}, release:'Release: sample v0.1.0', workflow:'Latest workflow: sample success'};
