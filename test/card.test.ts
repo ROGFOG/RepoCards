@@ -1,6 +1,14 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { parseRepository, renderCard, fetchCard, sample, escapeXml } from '../src/card.ts';
+test('XML output removes isolated surrogates while preserving Unicode pairs', () => {
+  const text = 'notes\ud800 / \udc00 / 🧩 / заметки\t\n\r';
+  assert.equal(escapeXml(text), 'notes /  / 🧩 / заметки\t\n\r');
+  const svg = renderCard({...sample, repository:{...sample.repository, description:text}});
+  assert.ok(!svg.includes('\ud800'));
+  assert.ok(!svg.includes('\udc00'));
+  assert.ok(svg.includes('🧩'));
+});
 test('accepts only repository identifiers or canonical HTTPS URLs', () => { assert.equal(parseRepository(' ROGFOG/PolicyLens '), 'ROGFOG/PolicyLens'); assert.equal(parseRepository('https://github.com/ROGFOG/RepoCards/'), 'ROGFOG/RepoCards'); for (const bad of ['https://evil.test/a/b','https://github.com/a/b/issues','http://github.com/a/b','https://x@github.com/a/b','a/..','a/b?x','https://github.com/a/b#x']) assert.throws(() => parseRepository(bad)); });
 test('escapes malicious metadata and strips XML controls', () => { const svg = renderCard({...sample, repository:{...sample.repository, full_name:'<script>&"', description:'<image onload="evil()"/>\u0001'}}); assert.ok(!svg.includes('<script>')); assert.ok(!svg.includes('<image ')); assert.ok(svg.includes('&lt;image')); assert.ok(!svg.includes('\u0001')); assert.equal(escapeXml("<&>\"'"), '&lt;&amp;&gt;&quot;&apos;'); });
 test('renders both themes and honest snapshot labels', () => { for (const theme of ['paper','night'] as const) { const svg = renderCard(sample, theme); assert.ok(svg.includes('Snapshot, not a live badge')); assert.ok(svg.includes('sample success')); } });

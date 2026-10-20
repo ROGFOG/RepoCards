@@ -1,33 +1,41 @@
 # RepoCards
 
-Enter a public GitHub repository, choose Paper or Night, and download an SVG
-card with its description, language, activity and available release metadata.
-Use the card in a README or project page.
-
-[Open the card studio](https://rogfog.github.io/RepoCards/) · [Design notes, RU](docs/design.ru.md)
+[Open the card studio](https://rogfog.github.io/RepoCards/), enter a public GitHub
+repository, and download its metadata as an SVG. Commit the card beside a README
+to keep a copy of the repository information at the time it was captured.
 
 ![RepoCards studio](docs/screenshot.png)
 
-## Included
+## From repository to README
 
-- Public name, description, language, stars, forks and last push date.
-- UTC metadata capture time, shown separately from the last push date.
-- Latest published release and latest workflow run, when accessible.
-- Two palettes, accessible SVG titles, local preview and SVG download.
-- Markdown snippet for a card saved as `assets/repository-card.svg`.
-- Clearly labelled sample mode and explicit unavailable-data states.
+1. Enter `ROGFOG/PolicyLens` or its HTTPS GitHub URL.
+2. Choose Paper or Night and create the card.
+3. Save the SVG as `assets/repository-card.svg` in your repository.
+4. Copy the Markdown snippet into your README.
 
-Cards are **snapshots**, not hosted live badges. Latest workflow means one run,
-not every check or the status of the current default branch. Regenerate a card
-when you need to refresh its contents. The capture time is recorded once, after
-metadata requests finish, using your device clock. Switching palettes or downloading
-again preserves that time; it does not prove the data is fresh or signed. Sample
-cards say the capture time is not applicable. Older card data without a timestamp
-shows an explicit unavailable label.
+Each 560 × 300 card contains the description, language, star/fork counts, last
+push date, latest release and latest workflow result when available. Long text
+is shortened; SVG title and description keep accessible text.
 
-## Run locally
+The capture time is set once after the requests finish, using the device clock,
+and displayed in UTC. Palette changes and downloads preserve it. The built-in
+sample is labelled as sample data and has no capture time.
 
-Requires Node.js 24+ and npm.
+## Known issues and data handling
+
+The downloaded image is a snapshot; regenerate it to refresh the metadata.
+The workflow field refers to one latest run, which may belong to another branch.
+GitHub's unauthenticated API limits can prevent loading a repository. Optional
+release/workflow failures appear as unavailable while the rest of the card remains
+usable. Older card data without a capture time shows unavailable for that field.
+
+Requests go from the browser to `api.github.com`, without credentials or a
+referrer. GitHub receives the repository query and ordinary network metadata.
+The app has no accounts, analytics, proxy or persistent storage.
+
+## Work on the renderer
+
+Node.js 24+ and npm:
 
 ```sh
 npm ci --ignore-scripts
@@ -35,25 +43,14 @@ npm test
 npm run dev
 ```
 
-Open http://127.0.0.1:4173. `npm run build` creates a static site in `dist/`.
+Open http://127.0.0.1:4173. `npm run build` creates `dist/` for Pages.
 
-## Privacy and rendering
+`src/card.ts` contains URL validation, API requests and SVG rendering;
+`src/main.ts` connects them to the preview and download controls. The renderer
+escapes metadata as XML and removes invalid XML characters, including isolated
+UTF-16 surrogates. Cards contain no scripts, external images or font downloads.
 
-Metadata requests go directly from your browser to api.github.com, with no
-credentials or referrer. No tokens, accounts, proxy, analytics or persistent
-storage. GitHub receives the public repository query and normal network metadata.
-Unauthenticated API limits apply; rate-limit failures are displayed explicitly.
-
-Only owner/repository identifiers and HTTPS github.com repository URLs are
-accepted. Remote text is XML-escaped; cards contain no scripts, foreignObject,
-remote images or fonts. The preview is parsed as SVG after escaping.
-
-## Development
-
-The renderer and request layer are independent of the DOM. Tests cover malicious
-metadata, URL validation, optional metadata failures, API limits and palettes.
-CI tests and builds PRs. Pages publishes tested builds from main.
-
-See [open tasks](https://github.com/ROGFOG/RepoCards/issues) for the next steps.
-
-MIT license.
+Checked on Windows with Node.js 24.14.0: 12 tests and the TypeScript/static build.
+Tests cover both palettes, escaping, missing metadata, rate limits and capture
+times. [Как формируется карточка](docs/design.ru.md) follows the data through the
+three API requests and renderer. [MIT license](LICENSE).

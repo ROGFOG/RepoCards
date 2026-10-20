@@ -13,7 +13,7 @@ export function parseRepository(input: string): string {
   return value;
 }
 export function escapeXml(value: string): string {
-  return value.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\ufffe\uffff]/g, '').replace(/[&<>"']/g, character => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'})[character]!);
+  return value.replace(/[^\u0009\u000a\u000d\u0020-\ud7ff\ue000-\ufffd\u{10000}-\u{10ffff}]/gu, '').replace(/[&<>"']/g, character => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'})[character]!);
 }
 function clip(value: string, length: number) { const chars = Array.from(value); return chars.length > length ? chars.slice(0, length - 1).join('') + '…' : value; }
 function lines(value: string): string[] {
@@ -33,7 +33,7 @@ export function renderCard(data: CardData, theme: Theme = 'paper'): string {
   const colors = theme === 'night' ? {bg:'#17241f', text:'#f2f4eb', muted:'#b4c5b7', line:'#374b40', accent:'#eaa878'} : {bg:'#faf9f3', text:'#22362b', muted:'#596a5d', line:'#dadfd2', accent:'#a74123'};
   const e = escapeXml;
   const description = lines(repo.description || 'A public project on GitHub.');
-  const count = (value: number) => Number.isSafeInteger(value) && value >= 0 ? String(value) : '—';
+  const count = (value: number) => Number.isSafeInteger(value) && value >= 0 ? String(value) : '-';
   const updated = repo.pushed_at && /^\d{4}-\d{2}-\d{2}T/.test(repo.pushed_at) ? repo.pushed_at.slice(0, 10) : 'unknown';
   const captured = data.capturedAt ? new Date(data.capturedAt) : undefined;
   const captureLabel = data.isSample ? 'Sample data · Capture time: not applicable'
